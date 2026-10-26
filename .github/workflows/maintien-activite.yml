@@ -1,0 +1,24 @@
+name: Maintien de l'activité
+
+# GitHub désactive les workflows planifiés d'un dépôt public après 60 jours sans commit.
+# Un commit vide par mois garde le ping actif.
+on:
+  schedule:
+    - cron: '0 5 15 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Commit vide
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "chore: maintien de l'activité ($(date -u +%Y-%m))"
+          git push

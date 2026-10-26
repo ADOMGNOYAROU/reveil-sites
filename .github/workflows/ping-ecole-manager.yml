@@ -1,0 +1,38 @@
+name: Ping École Manager
+
+# Sur le plan gratuit, Render endort le site après 15 min sans visite et le réveil prend
+# environ 25 s. Ping aux heures d'école seulement (Lomé = UTC) : environ 390 h par mois, sous
+# les 750 h gratuites. Deux réveils en plus pour les tâches planifiées du site : les rappels
+# de paiement (8 h, chaque jour) et la purge du journal d'audit (3 h, le 1er du mois).
+# La base Neon n'est pas pingée : elle se réveille seule et ses heures gratuites sont comptées.
+on:
+  schedule:
+    - cron: '*/10 6-20 * * 1-6'
+    - cron: '40 7 * * 0'
+    - cron: '40 2 1 * *'
+  workflow_dispatch:
+
+concurrency:
+  group: ping-ecole-manager
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  ping:
+    name: Réveil du site
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Appel de /up
+        env:
+          URL: ${{ vars.ECOLE_MANAGER_URL || 'https://ecole-manager-zsol.onrender.com' }}
+        run: |
+          for essai in 1 2 3; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 60 "$URL/up") || code=000
+            echo "Essai $essai : HTTP $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 15
+          done
+          echo "::error::École Manager ne répond pas (dernier code HTTP : $code)"
+          exit 1
